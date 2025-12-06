@@ -124,6 +124,10 @@ module platform_collision (
         end
     endfunction
 
+    // ============================================================
+    //  ONE-PASS COLLISION LOGIC (combinational)
+    //  All platforms follow the same structure; side collisions fixed.
+    // ============================================================
     always @(*) begin
         r_has_support = 1'b0;
         r_support_y   = 10'd0;
@@ -131,228 +135,49 @@ module platform_collision (
         r_hit_right   = 1'b0;
         r_hit_ceiling = 1'b0;
 
-        // For each platform, we do:
-        // - ground support on its top
-        // - ceiling vs its bottom
-        // - side collisions vs its left/right edges
+        // --- MACRO FOR EACH PLATFORM ---
+        `define HANDLE_PLATFORM(PX_MIN, PX_MAX, PY_TOP, PY_BOT)         \
+            if (overlap_x(px_left, px_right, PX_MIN, PX_MAX)) begin    \
+                if (feet_y >= PY_TOP && feet_y <= PY_TOP + 2) begin    \
+                    if (!r_has_support || (PY_TOP > r_support_y)) begin\
+                        r_has_support = 1'b1;                           \
+                        r_support_y   = PY_TOP;                         \
+                    end                                                 \
+                end                                                     \
+                if (head_y <= PY_BOT && head_y >= PY_BOT - 2 &&         \
+                    overlap_y(head_y, feet_y, PY_TOP, PY_BOT)) begin   \
+                    r_hit_ceiling = 1'b1;                               \
+                end                                                     \
+            end                                                         \
+            if (overlap_y(head_y, feet_y, PY_TOP, PY_BOT)) begin        \
+                /* LEFT wall */                                         \
+                if (px_left <= PX_MAX && px_left >= PX_MAX - 2)         \
+                    r_hit_left = 1'b1;                                  \
+                /* RIGHT wall */                                        \
+                if (px_right >= PX_MIN && px_right <= PX_MIN + 2)       \
+                    r_hit_right = 1'b1;                                 \
+            end
 
-        // PLATFORM 1
-        if (overlap_x(px_left, px_right, P1_X_MIN, P1_X_MAX)) begin
-            if (feet_y >= P1_Y_TOP && feet_y <= P1_Y_TOP + 2) begin
-                if (!r_has_support || (P1_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P1_Y_TOP;
-                end
-            end
-            if (head_y <= P1_Y_BOT && head_y >= P1_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P1_Y_TOP, P1_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P1_Y_TOP, P1_Y_BOT)) begin
-            if (px_left  <= P1_X_MAX && px_right >= P1_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P1_X_MIN && px_left  <= P1_X_MIN) r_hit_right <= 1'b1;
-        end
+        // Apply to each platform
+        `HANDLE_PLATFORM(P1_X_MIN,  P1_X_MAX,  P1_Y_TOP,  P1_Y_BOT)
+        `HANDLE_PLATFORM(P2_X_MIN,  P2_X_MAX,  P2_Y_TOP,  P2_Y_BOT)
+        `HANDLE_PLATFORM(P3_X_MIN,  P3_X_MAX,  P3_Y_TOP,  P3_Y_BOT)
+        `HANDLE_PLATFORM(P4_X_MIN,  P4_X_MAX,  P4_Y_TOP,  P4_Y_BOT)
+        `HANDLE_PLATFORM(P5_X_MIN,  P5_X_MAX,  P5_Y_TOP,  P5_Y_BOT)
+        `HANDLE_PLATFORM(P6_X_MIN,  P6_X_MAX,  P6_Y_TOP,  P6_Y_BOT)
+        `HANDLE_PLATFORM(P7_X_MIN,  P7_X_MAX,  P7_Y_TOP,  P7_Y_BOT)
+        `HANDLE_PLATFORM(P8_X_MIN,  P8_X_MAX,  P8_Y_TOP,  P8_Y_BOT)
+        `HANDLE_PLATFORM(P9_X_MIN,  P9_X_MAX,  P9_Y_TOP,  P9_Y_BOT)
+        `HANDLE_PLATFORM(P10_X_MIN, P10_X_MAX, P10_Y_TOP, P10_Y_BOT)
+        `HANDLE_PLATFORM(P11_X_MIN, P11_X_MAX, P11_Y_TOP, P11_Y_BOT)
+        `HANDLE_PLATFORM(PG_X_MIN,  PG_X_MAX,  PG_Y_TOP,  PG_Y_BOT)
 
-        // PLATFORM 2
-        if (overlap_x(px_left, px_right, P2_X_MIN, P2_X_MAX)) begin
-            if (feet_y >= P2_Y_TOP && feet_y <= P2_Y_TOP + 2) begin
-                if (!r_has_support || (P2_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P2_Y_TOP;
-                end
-            end
-            if (head_y <= P2_Y_BOT && head_y >= P2_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P2_Y_TOP, P2_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P2_Y_TOP, P2_Y_BOT)) begin
-            if (px_left  <= P2_X_MAX && px_right >= P2_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P2_X_MIN && px_left  <= P2_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 3
-        if (overlap_x(px_left, px_right, P3_X_MIN, P3_X_MAX)) begin
-            if (feet_y >= P3_Y_TOP && feet_y <= P3_Y_TOP + 2) begin
-                if (!r_has_support || (P3_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P3_Y_TOP;
-                end
-            end
-            if (head_y <= P3_Y_BOT && head_y >= P3_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P3_Y_TOP, P3_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P3_Y_TOP, P3_Y_BOT)) begin
-            if (px_left  <= P3_X_MAX && px_right >= P3_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P3_X_MIN && px_left  <= P3_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 4
-        if (overlap_x(px_left, px_right, P4_X_MIN, P4_X_MAX)) begin
-            if (feet_y >= P4_Y_TOP && feet_y <= P4_Y_TOP + 2) begin
-                if (!r_has_support || (P4_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P4_Y_TOP;
-                end
-            end
-            if (head_y <= P4_Y_BOT && head_y >= P4_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P4_Y_TOP, P4_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P4_Y_TOP, P4_Y_BOT)) begin
-            if (px_left  <= P4_X_MAX && px_right >= P4_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P4_X_MIN && px_left  <= P4_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 5
-        if (overlap_x(px_left, px_right, P5_X_MIN, P5_X_MAX)) begin
-            if (feet_y >= P5_Y_TOP && feet_y <= P5_Y_TOP + 2) begin
-                if (!r_has_support || (P5_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P5_Y_TOP;
-                end
-            end
-            if (head_y <= P5_Y_BOT && head_y >= P5_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P5_Y_TOP, P5_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P5_Y_TOP, P5_Y_BOT)) begin
-            if (px_left  <= P5_X_MAX && px_right >= P5_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P5_X_MIN && px_left  <= P5_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 6
-        if (overlap_x(px_left, px_right, P6_X_MIN, P6_X_MAX)) begin
-            if (feet_y >= P6_Y_TOP && feet_y <= P6_Y_TOP + 2) begin
-                if (!r_has_support || (P6_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P6_Y_TOP;
-                end
-            end
-            if (head_y <= P6_Y_BOT && head_y >= P6_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P6_Y_TOP, P6_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P6_Y_TOP, P6_Y_BOT)) begin
-            if (px_left  <= P6_X_MAX && px_right >= P6_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P6_X_MIN && px_left  <= P6_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 7
-        if (overlap_x(px_left, px_right, P7_X_MIN, P7_X_MAX)) begin
-            if (feet_y >= P7_Y_TOP && feet_y <= P7_Y_TOP + 2) begin
-                if (!r_has_support || (P7_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P7_Y_TOP;
-                end
-            end
-            if (head_y <= P7_Y_BOT && head_y >= P7_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P7_Y_TOP, P7_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P7_Y_TOP, P7_Y_BOT)) begin
-            if (px_left  <= P7_X_MAX && px_right >= P7_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P7_X_MIN && px_left  <= P7_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 8
-        if (overlap_x(px_left, px_right, P8_X_MIN, P8_X_MAX)) begin
-            if (feet_y >= P8_Y_TOP && feet_y <= P8_Y_TOP + 2) begin
-                if (!r_has_support || (P8_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P8_Y_TOP;
-                end
-            end
-            if (head_y <= P8_Y_BOT && head_y >= P8_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P8_Y_TOP, P8_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P8_Y_TOP, P8_Y_BOT)) begin
-            if (px_left  <= P8_X_MAX && px_right >= P8_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P8_X_MIN && px_left  <= P8_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 9
-        if (overlap_x(px_left, px_right, P9_X_MIN, P9_X_MAX)) begin
-            if (feet_y >= P9_Y_TOP && feet_y <= P9_Y_TOP + 2) begin
-                if (!r_has_support || (P9_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P9_Y_TOP;
-                end
-            end
-            if (head_y <= P9_Y_BOT && head_y >= P9_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P9_Y_TOP, P9_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P9_Y_TOP, P9_Y_BOT)) begin
-            if (px_left  <= P9_X_MAX && px_right >= P9_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P9_X_MIN && px_left  <= P9_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 10
-        if (overlap_x(px_left, px_right, P10_X_MIN, P10_X_MAX)) begin
-            if (feet_y >= P10_Y_TOP && feet_y <= P10_Y_TOP + 2) begin
-                if (!r_has_support || (P10_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P10_Y_TOP;
-                end
-            end
-            if (head_y <= P10_Y_BOT && head_y >= P10_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P10_Y_TOP, P10_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P10_Y_TOP, P10_Y_BOT)) begin
-            if (px_left  <= P10_X_MAX && px_right >= P10_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P10_X_MIN && px_left  <= P10_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // PLATFORM 11
-        if (overlap_x(px_left, px_right, P11_X_MIN, P11_X_MAX)) begin
-            if (feet_y >= P11_Y_TOP && feet_y <= P11_Y_TOP + 2) begin
-                if (!r_has_support || (P11_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = P11_Y_TOP;
-                end
-            end
-            if (head_y <= P11_Y_BOT && head_y >= P11_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, P11_Y_TOP, P11_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, P11_Y_TOP, P11_Y_BOT)) begin
-            if (px_left  <= P11_X_MAX && px_right >= P11_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= P11_X_MIN && px_left  <= P11_X_MIN) r_hit_right <= 1'b1;
-        end
-
-        // GOAL platform sides / bottom
-        if (overlap_x(px_left, px_right, PG_X_MIN, PG_X_MAX)) begin
-            if (feet_y >= PG_Y_TOP && feet_y <= PG_Y_TOP + 2) begin
-                if (!r_has_support || (PG_Y_TOP > r_support_y)) begin
-                    r_has_support = 1'b1;
-                    r_support_y   = PG_Y_TOP;
-                end
-            end
-            if (head_y <= PG_Y_BOT && head_y >= PG_Y_BOT - 2 &&
-                overlap_y(head_y, feet_y, PG_Y_TOP, PG_Y_BOT)) begin
-                r_hit_ceiling = 1'b1;
-            end
-        end
-        if (overlap_y(head_y, feet_y, PG_Y_TOP, PG_Y_BOT)) begin
-            if (px_left  <= PG_X_MAX && px_right >= PG_X_MAX) r_hit_left  <= 1'b1;
-            if (px_right >= PG_X_MIN && px_left  <= PG_X_MIN) r_hit_right <= 1'b1;
-        end
+        `undef HANDLE_PLATFORM
     end
 
+    // ============================================================
+    // Final outputs
+    // ============================================================
     assign support_y = r_support_y;
     assign on_ground = r_has_support &&
                        (feet_y >= r_support_y) &&
@@ -367,7 +192,6 @@ module platform_collision (
         (feet_y >= PG_Y_TOP) &&
         (feet_y <= PG_Y_TOP + 5);
 
-    // In lava only if below all platforms (no support) and in lava band
     assign in_lava = (feet_y >= LAVA_Y) && !on_ground;
 
 endmodule
