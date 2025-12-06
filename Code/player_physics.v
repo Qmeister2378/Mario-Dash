@@ -73,13 +73,13 @@ module player_physics (
                 if (jump && on_ground) begin
                     // Start jump
                     vy        <= JUMP_VEL;
-                    next_y    = player_y + JUMP_VEL;
+                    next_y    = player_y + {{2{JUMP_VEL[7]}}, JUMP_VEL};
                     was_in_air <= 1'b1;
                 end 
                 else begin
                     if (!on_ground) begin
                         vy     <= vy + GRAVITY;
-                        next_y = player_y + vy;
+                        next_y = player_y + {{2{vy[7]}}, vy};;
 
                         if (hit_ceiling && vy < 0) begin
                             vy     <= 0;
