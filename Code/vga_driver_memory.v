@@ -1,145 +1,103 @@
 module vga_driver_memory (
-	input CLOCK_50,
+    input  wire [9:0] x,
+    input  wire [9:0] y,
+    input  wire       active_pixels,
 
-	output [6:0] HEX0,
-	output [6:0] HEX1,
-	output [6:7] HEX2,
-	output [6:0] HEX3,
+    input  wire [9:0] player_x,
+    input  wire [9:0] player_y,
+    input  wire [9:0] lava_wall_x,
+    input  wire [2:0] game_state,
 
-	input [3:0] KEY,
-	output [9:0] LEDR,
-	input [9:0] SW,
-
-	output VGA_BLANK_N,
-	output reg [7:0] VGA_B,
-	output VGA_CLK,
-	output reg [7:0] VGA_G,
-	output VGA_HS,
-	output reg [7:0] VGA_R,
-	output VGA_SYNC_N,
-	output VGA_VS
+    output reg  [7:0] VGA_R,
+    output reg  [7:0] VGA_G,
+    output reg  [7:0] VGA_B
 );
+    localparam S_RUNNING   = 3'd0;
+    localparam S_GAME_OVER = 3'd1;
+    localparam S_WIN       = 3'd2;
 
-	assign HEX0 = 7'h00;
-	assign HEX1 = 7'h00;
-	assign HEX2 = 7'h00;
-	assign HEX3 = 7'h00;
+    // Colors
+    localparam LIGHT_GRAY = 24'hC0C0C0;
+    localparam DARK_GRAY  = 24'h505050;
+    localparam LAVA_RED   = 24'hFF4500;
+    localparam GOLD       = 24'hFFD700;
 
-	//-------------------------------------------------------
-	// VGA driver signals
-	//-------------------------------------------------------
-	wire active_pixels;
-	wire [9:0] x;
-	wire [9:0] y;
-	wire clk = CLOCK_50;
-	wire rst = SW[0];
+    localparam PLAYER_COLOR    = 24'h0000FF;
+    localparam LAVA_WALL_COLOR = 24'hFF6600;
 
-	vga_driver the_vga(
-		.clk(clk),
-		.rst(rst),
-		.vga_clk(VGA_CLK),
-		.hsync(VGA_HS),
-		.vsync(VGA_VS),
-		.active_pixels(active_pixels),
-		.xPixel(x),
-		.yPixel(y),
-		.VGA_BLANK_N(VGA_BLANK_N),
-		.VGA_SYNC_N(VGA_SYNC_N)
-	);
+    localparam LAVA_Y = 10'd380;
 
-	//-------------------------------------------------------
-	// COLOR REGISTERS
-	//-------------------------------------------------------
-	reg [23:0] vga_color;
+    reg [23:0] base_color;
+    reg [23:0] vga_color;
 
-	localparam LIGHT_GRAY = 24'hC0C0C0;
-	localparam DARK_GRAY  = 24'h505050;
-	localparam LAVA_RED   = 24'hFF4500;
-	localparam LAVA_GLOW  = 24'hFF8C00;
-	localparam GOLD       = 24'hFFD700;
+    always @(*) begin
+        base_color = LIGHT_GRAY;
 
-	//-------------------------------------------------------
-	// LEVEL RENDERING LOGIC — MATCHES YOUR DRAWING
-	//-------------------------------------------------------
-	always @(*) begin
-		// Default background
-		vga_color = LIGHT_GRAY;
+        // Ceiling
+        if (y < 75)
+            base_color = DARK_GRAY;
 
-		//---------------------------------------------------
-		// CEILING (top 100 px)
-		//---------------------------------------------------
-		if (y < 75)
-			vga_color = DARK_GRAY;
+        // Lava floor
+        if (y >= LAVA_Y)
+            base_color = LAVA_RED;
 
-		//---------------------------------------------------
-		// LAVA FLOOR (380–480)
-		//---------------------------------------------------
-		if (y >= 380)
-			vga_color = LAVA_RED;
+        // Platforms (match your level layout)
+        // 1: Small left step
+        if (x >= 0   && x <= 60  && y >= 360 && y <= 380) base_color = DARK_GRAY;
+        // 2: Long ground platform
+        if (x >= 90  && x <= 270 && y >= 360 && y <= 380) base_color = DARK_GRAY;
+        // 3: Middle ledge
+        if (x >= 130 && x <= 200 && y >= 295 && y <= 310) base_color = DARK_GRAY;
+        // 4: Floating mid tiny platform
+        if (x >= 175 && x <= 210 && y >= 240 && y <= 255) base_color = DARK_GRAY;
+        // 5: Tall block
+        if (x >= 240 && x <= 270 && y >= 220 && y <= 380) base_color = DARK_GRAY;
+        // 6: Right of tall block
+        if (x >= 330 && x <= 380 && y >= 360 && y <= 380) base_color = DARK_GRAY;
+        // 7: Mid ledge
+        if (x >= 380 && x <= 430 && y >= 295 && y <= 310) base_color = DARK_GRAY;
+        // 8: Higher small ledge
+        if (x >= 345 && x <= 380 && y >= 230 && y <= 245) base_color = DARK_GRAY;
+        // 9: High ledge
+        if (x >= 370 && x <= 430 && y >= 165 && y <= 180) base_color = DARK_GRAY;
+        // 10: Elevated platform
+        if (x >= 475 && x <= 550 && y >= 190 && y <= 240) base_color = DARK_GRAY;
+        // 11: Far right ground
+        if (x >= 540 &&              y >= 360 && y <= 380) base_color = DARK_GRAY;
 
-		//---------------------------------------------------
-		// LAVA GLOW (350–380) unless stone here
-		//---------------------------------------------------
-		//if (y >= 350 && y < 380)
-			//vga_color = LAVA_GLOW;
+        // Goal (gold podium)
+        if (x >= 580 && x <= 630 && y >= 355 && y <= 360) base_color = GOLD;
 
-		//---------------------------------------------------
-		// PLATFORMS (dark gray) — based on drawing
-		//---------------------------------------------------
+        // Lava wall from left
+        if (x >= lava_wall_x && x < lava_wall_x + 10)
+            base_color = LAVA_WALL_COLOR;
 
-		// Small left step
-		if (x >= 0 && x <= 60 && y >= 360 && y <= 380)
-			vga_color = DARK_GRAY;
-			
-		// Long platfoorm
-		if (x >= 90 && x <= 270 && y >= 360 && y <= 380)
-			vga_color = DARK_GRAY;
+        // Player
+        if (x >= player_x && x < player_x + 16 &&
+            y >= player_y && y < player_y + 16)
+            base_color = PLAYER_COLOR;
 
-		// Middle ledge
-		if (x >= 130 && x <= 200 && y >= 295 && y <= 310)
-			vga_color = DARK_GRAY;
+        // Start with base
+        vga_color = base_color;
 
-		// Floating mid tiny platform
-		if (x >= 175 && x <= 210 && y >= 240 && y <= 255)
-			vga_color = DARK_GRAY;
+        // Apply tints only on active pixels
+        if (active_pixels) begin
+            if (game_state == S_GAME_OVER) begin
+                // red tint: boost red, dampen G/B
+                vga_color[23:16] = base_color[23:16] | 8'h60;
+                vga_color[15:8]  = base_color[15:8]  >> 1;
+                vga_color[7:0]   = base_color[7:0]   >> 1;
+            end else if (game_state == S_WIN) begin
+                // gold tint
+                vga_color = base_color | 24'h302000;
+            end
+        end
+    end
 
-		// Tall block
-		if (x >= 240 && x <= 270 && y >= 220 && y <= 380)
-			vga_color = DARK_GRAY;
-			
-		// Right of tall block
-		if (x >= 330 && x <= 380 && y >= 360 && y <= 380)
-			vga_color = DARK_GRAY;	
-
-		// 7
-		if (x >= 380 && x <= 430 && y >= 295 && y <= 310)
-			vga_color = DARK_GRAY;
-			
-		//8
-		if (x >= 345 && x <= 380 && y >= 230 && y <= 245)
-			vga_color = DARK_GRAY;
-			
-		// 9
-		if (x >= 370 && x <= 430 && y >= 165 && y <= 180)
-			vga_color = DARK_GRAY;
-		//10
-		if (x >= 475 && x <= 550 && y >= 190 && y <= 240)
-			vga_color = DARK_GRAY;		
-		//11
-		if (x >= 540 && y >= 360 && y <= 380)
-			vga_color = DARK_GRAY;
-
-		// GOAL PLATFORM (gold podium)
-		if (x >= 580 && x <= 630 && y >= 355 && y <= 360)
-			vga_color = GOLD;
-
-	end
-
-	// OUTPUT RGB
-	always @(*) begin
-		VGA_R = vga_color[23:16];
-		VGA_G = vga_color[15:8];
-		VGA_B = vga_color[7:0];
-	end
+    always @(*) begin
+        VGA_R = vga_color[23:16];
+        VGA_G = vga_color[15:8];
+        VGA_B = vga_color[7:0];
+    end
 
 endmodule
