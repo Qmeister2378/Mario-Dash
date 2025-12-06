@@ -191,7 +191,8 @@ module platform_collision (
         overlap_x(px_left, px_right, PG_X_MIN, PG_X_MAX) &&
         (feet_y >= PG_Y_TOP) &&
         (feet_y <= PG_Y_TOP + 5);
-
-    assign in_lava = (feet_y >= LAVA_Y) && !on_ground;
+		  
+		  
+    assign in_lava = 1'b0;//(feet_y >= LAVA_Y) && !on_ground;
 
 endmodule
