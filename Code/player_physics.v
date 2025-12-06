@@ -16,6 +16,7 @@ module player_physics (
     output reg  [9:0] player_y,
     output reg        jump_landed_pulse
 );
+
     localparam SCREEN_W = 10'd640;
     localparam PLAYER_W = 10'd16;
     localparam PLAYER_H = 10'd16;
@@ -24,65 +25,82 @@ module player_physics (
     localparam GRAVITY  = 8'sd1;
     localparam JUMP_VEL = -8'sd10;
 
-    // Starting on Platform 1 (small left step)
-    localparam P1_Y_TOP = 10'd360;
     localparam START_X  = 10'd20;
+    localparam START_Y  = 10'd360 - PLAYER_H;
 
     reg signed [7:0] vy;
-    reg              was_in_air;
+    reg was_in_air;
+
+    reg [9:0] next_x;
+    reg [9:0] next_y;
 
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             player_x          <= START_X;
-            player_y          <= P1_Y_TOP - PLAYER_H;
+            player_y          <= START_Y;
             vy                <= 8'sd0;
-            jump_landed_pulse <= 1'b0;
             was_in_air        <= 1'b0;
-        end else if (game_tick) begin
+            jump_landed_pulse <= 1'b0;
+        end 
+        else if (game_tick) begin
             jump_landed_pulse <= 1'b0;
 
-            if (freeze) begin
-                // Everything frozen in WIN / GAME_OVER
-            end else begin
-                // ---------------- Horizontal movement ----------------
-                if (move_left && !move_right && !hit_left_wall) begin
-                    if (player_x > H_SPEED)
-                        player_x <= player_x - H_SPEED;
-                end else if (move_right && !move_left && !hit_right_wall) begin
-                    if (player_x < SCREEN_W - PLAYER_W - H_SPEED)
-                        player_x <= player_x + H_SPEED;
+            if (!freeze) begin
+
+                // ============================================================
+                // HORIZONTAL MOVEMENT (TEMP VARS = BLOCKING)
+                // ============================================================
+                next_x = player_x;
+
+                if (move_left && !move_right) begin
+                    if (!hit_left_wall && player_x > H_SPEED)
+                        next_x = player_x - H_SPEED;
+                end
+                else if (move_right && !move_left) begin
+                    if (!hit_right_wall &&
+                        player_x < SCREEN_W - PLAYER_W - H_SPEED)
+                        next_x = player_x + H_SPEED;
                 end
 
-                // ---------------- Jumping + Gravity ----------------
+                // Commit new x
+                player_x <= next_x;
+
+                // ============================================================
+                // VERTICAL MOVEMENT (TEMP VAR = BLOCKING)
+                // ============================================================
+                next_y = player_y;
+
                 if (jump && on_ground) begin
-                    // start jump
-                    vy         <= JUMP_VEL;
-                    player_y   <= player_y + JUMP_VEL;
+                    // Start jump
+                    vy        <= JUMP_VEL;
+                    next_y    = player_y + JUMP_VEL;
                     was_in_air <= 1'b1;
-                end else begin
-                    // apply gravity
+                end 
+                else begin
                     if (!on_ground) begin
-                        vy       <= vy + GRAVITY;
-                        player_y <= player_y + vy;
+                        vy     <= vy + GRAVITY;
+                        next_y = player_y + vy;
 
-                        // prevent going into platform bottoms
                         if (hit_ceiling && vy < 0) begin
-                            vy <= 8'sd0;
+                            vy     <= 0;
+                            next_y = player_y;
                         end
-                    end else begin
-                        // standing on platform
-                        player_y <= support_y - PLAYER_H;
-                        vy       <= 8'sd0;
+                    end 
+                    else begin
+                        next_y = support_y - PLAYER_H;
+                        vy     <= 0;
 
-                        // detect landing after being in air
                         if (was_in_air) begin
                             jump_landed_pulse <= 1'b1;
-                            was_in_air        <= 1'b0;
+                            was_in_air <= 1'b0;
                         end
                     end
                 end
-            end
-        end
-    end
 
+                // Commit new y
+                player_y <= next_y;
+
+            end // freeze
+        end // game_tick
+    end // always
 endmodule
