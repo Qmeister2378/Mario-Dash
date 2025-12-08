@@ -21,15 +21,20 @@ module player_physics (
     localparam PLAYER_W = 10'd16;
     localparam PLAYER_H = 10'd16;
 
-    localparam H_SPEED  = 10'd3;
-    localparam GRAVITY  = 8'sd1;
-    localparam JUMP_VEL = -8'sd10;
+    localparam H_SPEED    = 10'd3;
+    localparam signed [7:0] GRAVITY      = 8'sd1;
+    localparam signed [7:0] JUMP_VEL     = -8'sd11;
+
+    // Clamp vertical speed so we don't fall too fast and tunnel through platforms
+    localparam signed [7:0] MAX_FALL_VEL = 8'sd8;    // max downward speed
+    
 
     localparam START_X  = 10'd20;
     localparam START_Y  = 10'd360 - PLAYER_H;
 
-    reg signed [7:0] vy;
-    reg was_in_air;
+    reg signed [7:0] vy;       // current vertical velocity
+    reg signed [7:0] vy_next;  // next vertical velocity
+    reg        was_in_air;
 
     reg [9:0] next_x;
     reg [9:0] next_y;
@@ -39,16 +44,17 @@ module player_physics (
             player_x          <= START_X;
             player_y          <= START_Y;
             vy                <= 8'sd0;
+            vy_next           <= 8'sd0;
             was_in_air        <= 1'b0;
             jump_landed_pulse <= 1'b0;
-        end 
+        end
         else if (game_tick) begin
             jump_landed_pulse <= 1'b0;
 
             if (!freeze) begin
 
                 // ============================================================
-                // HORIZONTAL MOVEMENT (TEMP VARS = BLOCKING)
+                // HORIZONTAL MOVEMENT (use next_x as temp)
                 // ============================================================
                 next_x = player_x;
 
@@ -66,41 +72,53 @@ module player_physics (
                 player_x <= next_x;
 
                 // ============================================================
-                // VERTICAL MOVEMENT (TEMP VAR = BLOCKING)
+                // VERTICAL MOVEMENT WITH CLAMPED VELOCITY
                 // ============================================================
-                next_y = player_y;
+                next_y  = player_y;
+                vy_next = vy;
 
                 if (jump && on_ground) begin
                     // Start jump
-                    vy        <= JUMP_VEL;
-                    next_y    = player_y + {{2{JUMP_VEL[7]}}, JUMP_VEL};
+                    vy_next   = JUMP_VEL;
+                    // sign-extend vy_next to 10 bits when adding to y
+                    next_y    = player_y + {{2{vy_next[7]}}, vy_next};
                     was_in_air <= 1'b1;
-                end 
+                end
                 else begin
                     if (!on_ground) begin
-                        vy     <= vy + GRAVITY;
-                        next_y = player_y + {{2{vy[7]}}, vy};;
+                        // apply gravity to velocity first
+                        vy_next = vy + GRAVITY;
 
-                        if (hit_ceiling && vy < 0) begin
-                            vy     <= 0;
-                            next_y = player_y;
+                        // clamp downward speed so we don't fall too fast
+                        if (vy_next > MAX_FALL_VEL)
+                            vy_next = MAX_FALL_VEL;
+
+                        // compute next y using the clamped velocity
+                        next_y = player_y + {{2{vy_next[7]}}, vy_next};
+
+                        // prevent going into platform bottoms
+                        if (hit_ceiling && vy_next < 0) begin
+                            vy_next = 0;
+                            next_y  = player_y;  // stop at current y
                         end
-                    end 
+                    end
                     else begin
-                        next_y = support_y - PLAYER_H;
-                        vy     <= 0;
+                        // standing on platform: snap to support height
+                        next_y  = support_y - PLAYER_H;
+                        vy_next = 0;
 
                         if (was_in_air) begin
                             jump_landed_pulse <= 1'b1;
-                            was_in_air <= 1'b0;
+                            was_in_air        <= 1'b0;
                         end
                     end
                 end
 
-                // Commit new y
+                // Commit new y and velocity
                 player_y <= next_y;
+                vy       <= vy_next;
 
-            end // freeze
+            end // !freeze
         end // game_tick
     end // always
 endmodule

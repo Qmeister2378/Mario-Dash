@@ -22,7 +22,7 @@ module lava_controller (
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             lava_wall_x      <= 10'd0;
-            lava_speed       <= 8'd1;
+            lava_speed       <= 8'd0; // should be 1, is 0 for testing
             lava_enabled     <= 1'b0;
             first_move_done  <= 1'b0;
             delay_cnt        <= 9'd0;
@@ -47,7 +47,7 @@ module lava_controller (
 
                 // speed up lava over time (score-based)
                 if (speed_boost_pulse)
-                    lava_speed <= lava_speed + 1'b1;
+                    lava_speed <= 0;
 
                 // move lava wall
                 if (lava_enabled) begin

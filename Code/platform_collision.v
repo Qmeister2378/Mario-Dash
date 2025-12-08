@@ -19,6 +19,8 @@ module platform_collision (
     localparam PLAYER_H = 10'd16;
 
     localparam LAVA_Y   = 10'd380;
+	 localparam LANDING_TOL = 10'd8; // allow 6px window for landing//mathcing max fall vel so it cant go through platform in 1 tick
+	 localparam CEILING_TOL = 10'd12;
 
     // ----------------------------------------------------------------
     // PLATFORM DEFINITIONS (must match renderer)
@@ -138,13 +140,13 @@ module platform_collision (
         // --- MACRO FOR EACH PLATFORM ---
         `define HANDLE_PLATFORM(PX_MIN, PX_MAX, PY_TOP, PY_BOT)         \
             if (overlap_x(px_left, px_right, PX_MIN, PX_MAX)) begin    \
-                if (feet_y >= PY_TOP && feet_y <= PY_TOP + 2) begin    \
+                if (feet_y >= PY_TOP && feet_y <= PY_TOP + LANDING_TOL) begin    \
                     if (!r_has_support || (PY_TOP > r_support_y)) begin\
                         r_has_support = 1'b1;                           \
                         r_support_y   = PY_TOP;                         \
                     end                                                 \
                 end                                                     \
-                if (head_y <= PY_BOT && head_y >= PY_BOT - 2 &&         \
+                if (head_y <= PY_BOT && head_y >= (PY_BOT - CEILING_TOL) &&         \
                     overlap_y(head_y, feet_y, PY_TOP, PY_BOT)) begin   \
                     r_hit_ceiling = 1'b1;                               \
                 end                                                     \
@@ -181,7 +183,7 @@ module platform_collision (
     assign support_y = r_support_y;
     assign on_ground = r_has_support &&
                        (feet_y >= r_support_y) &&
-                       (feet_y <= r_support_y + 2);
+                       (feet_y <= r_support_y + LANDING_TOL);
 
     assign hit_ceiling    = r_hit_ceiling;
     assign hit_left_wall  = r_hit_left;
@@ -193,6 +195,6 @@ module platform_collision (
         (feet_y <= PG_Y_TOP + 5);
 		  
 		  
-    assign in_lava = 1'b0;//(feet_y >= LAVA_Y) && !on_ground;
+    assign in_lava = (feet_y >= LAVA_Y) && !on_ground;
 
 endmodule
