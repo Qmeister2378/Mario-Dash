@@ -155,11 +155,9 @@ module platformer_top (
         player_y_reset   <= 10'd360 - 10'd16;
     end else if (game_tick) begin
         lava_speed_boost_pulse <= 1'b0;
-
         case (game_state)
             S_RUNNING: begin
                 freeze <= 1'b0;
-
                 if (jump_landed_pulse) begin
                     score <= score + 1;
                     lava_speed_boost_pulse <= 1'b1;
@@ -173,50 +171,57 @@ module platformer_top (
                     freeze <= 1'b1;
                 end
 
-                // Lava rising/falling logic
-                if (lava_rise) begin
-                    if (lava_height + LAVA_SPEED < LAVA_TOP)
-                        lava_height <= lava_height + LAVA_SPEED;
-                    else begin
-                        lava_height <= LAVA_TOP;
-                        lava_rise <= 1'b0;
+                // Lava rising/falling logic (Modified to check for level)
+                if (level == 2'd0) begin
+                    if (lava_rise) begin
+                        if (lava_height + LAVA_SPEED < LAVA_TOP)
+                            lava_height <= lava_height + LAVA_SPEED;
+                        else begin
+                            lava_height <= LAVA_TOP;
+                            lava_rise <= 1'b0;
+                        end
+                    end else begin
+                        if (lava_height >= LAVA_SPEED)
+                            lava_height <= lava_height - LAVA_SPEED;
+                        else begin
+                            lava_height <= LAVA_BOTTOM;
+                            lava_rise <= 1'b1;
+                        end
                     end
                 end else begin
-                    if (lava_height >= LAVA_SPEED)
-                        lava_height <= lava_height - LAVA_SPEED;
-                    else begin
-                        lava_height <= LAVA_BOTTOM;
-                        lava_rise <= 1'b1;
-                    end
+                    // In Level 1 or higher, keep lava safely at the bottom
+                    lava_height <= LAVA_BOTTOM;
+                    lava_rise <= 1'b1; // Default state for next Level 0 restart
                 end
             end
+// ... (after line 174)
 
             S_GAME_OVER: begin
                 freeze <= 1'b1;
                 game_state <= S_GAME_OVER;
 
                 // Reset player to starter position after game over
-                player_x_reset <= 10'd20;
-                player_y_reset <= 10'd360 - 10'd16;
+                if (level == 2'd0) begin
+                    player_x_reset <= 10'd20;
+                    player_y_reset <= 10'd360 - 10'd16;
+                end else begin
+                    // A safe reset position for Level 1+ (assuming ground is at y=380 or lower)
+                    player_x_reset <= 10'd20;
+                    player_y_reset <= 10'd380 - 10'd16;
+                end
             end
 
             S_WIN: begin
                 // advance to next level
                 level <= level + 1'b1;
-
                 // Reset player to starter position
                 player_x_reset <= 10'd20;
-                player_y_reset <= 10'd360 - 10'd16;
+                player_y_reset <= 10'd380 - 10'd16; // Use new safe start position
 
                 // Reset lava
                 lava_height <= 10'd0;
                 lava_rise <= 1'b1;
 
-                game_state <= S_RUNNING;
-                freeze <= 1'b0;
-            end
-
-            default: begin
                 game_state <= S_RUNNING;
                 freeze <= 1'b0;
             end
@@ -262,6 +267,7 @@ end
         .speed_boost_pulse (lava_speed_boost_pulse),
         .freeze            (freeze),
         .player_x          (player_x),
+		  .level        (level),
         .lava_wall_x       (lava_wall_x),
         .hit_lava_wall     (hit_lava_wall)
     );
