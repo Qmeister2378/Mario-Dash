@@ -6,7 +6,7 @@ module lava_controller (
     input  wire       speed_boost_pulse,
     input  wire       freeze,
     input  wire [9:0] player_x,
-
+	 input  wire [1:0] level,
     output reg  [9:0] lava_wall_x,
     output reg        hit_lava_wall
 );
@@ -29,10 +29,10 @@ module lava_controller (
             hit_lava_wall    <= 1'b0;
         end else if (game_tick) begin
             hit_lava_wall <= 1'b0;
-
-            if (freeze) begin
-                // freeze everything in WIN / GAME_OVER
-            end else begin
+            if (level == 2'd0) begin // Check for Level 0
+                if (freeze) begin
+                    // freeze everything in WIN / GAME_OVER
+                end else begin
                 // detect first player input
                 if (!first_move_done && any_input_level)
                     first_move_done <= 1'b1;
@@ -50,15 +50,13 @@ module lava_controller (
                     lava_speed <= 0;
 
                 // move lava wall
-                if (lava_enabled) begin
-                    lava_wall_x <= lava_wall_x + lava_speed;
-                    if (lava_wall_x > SCREEN_W)
-                        lava_wall_x <= SCREEN_W; // clamp
-                end
-
-                // Collision with player
                 if (lava_wall_x + LAVA_WALL_WIDTH >= player_x)
                     hit_lava_wall <= 1'b1;
+                end
+            end else begin
+                // Level 1 or higher: Lava is disabled.
+                lava_wall_x <= 10'd0; // Keep the wall off-screen or at reset
+                hit_lava_wall <= 1'b0;
             end
         end
     end
