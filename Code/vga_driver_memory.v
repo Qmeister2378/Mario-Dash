@@ -8,7 +8,7 @@ module vga_driver_memory (
     input  wire [9:0] lava_wall_x,
     input  wire [9:0] lava_height,
     input  wire [2:0] game_state,
-    input  wire [1:0] level,          // <-- NEW: level input
+    input  wire [1:0] level,      
 
     output reg  [7:0] VGA_R,
     output reg  [7:0] VGA_G,
@@ -28,11 +28,13 @@ module vga_driver_memory (
     localparam PLAYER_COLOR = 24'h0000FF;
     localparam LAVA_WALL_COLOR = 24'hFF6600;
 
+    // NEW GRASS COLOR
+    localparam GRASS_GREEN = 24'h3CB043;
+
     // Screen geometry
     localparam SCREEN_HEIGHT = 10'd480;
     localparam LAVA_Y = 10'd380;
 
-    // Rising lava column location
     localparam LAVA_X_START = 270;
     localparam LAVA_WIDTH   = 40;
 
@@ -48,20 +50,18 @@ module vga_driver_memory (
             base_color = DARK_GRAY;
 
         // Static lava floor
-        if (y >= LAVA_Y)
+        if (level == 2'd0 && y >= LAVA_Y)
             base_color = LAVA_RED;
 
-        // Rising lava band — only in a specific X range
+        // Rising lava band
         if ((x >= LAVA_X_START && x < LAVA_X_START + LAVA_WIDTH) &&
-            (y >=  (SCREEN_HEIGHT - lava_height)))
-        begin
+            (y >= (SCREEN_HEIGHT - lava_height)))
             base_color = LAVA_RED;
-        end
 
-        // ----------------- LEVEL PLATFORM SWITCH -----------------
+        // ----------------- LEVEL SWITCH -----------------
         case(level)
 
-            // ---------------------- LEVEL 0 ----------------------
+            // LEVEL 0 (unchanged)
             2'd0: begin
                 if (x >= 0   && x <= 60  && y >= 360 && y <= 380) base_color = DARK_GRAY;
                 if (x >= 90  && x <= 270 && y >= 360 && y <= 380) base_color = DARK_GRAY;
@@ -76,33 +76,30 @@ module vga_driver_memory (
                 if (x >= 540 && y >= 360 && y <= 380) base_color = DARK_GRAY;
             end
 
-            // ---------------------- LEVEL 1 ----------------------
-            2'd1: begin
-                if (x >= 50  && x <= 200 && y >= 350 && y <= 365) base_color = DARK_GRAY;
-                if (x >= 250 && x <= 300 && y >= 260 && y <= 275) base_color = DARK_GRAY;
-                if (x >= 320 && x <= 420 && y >= 180 && y <= 195) base_color = DARK_GRAY;
-                if (x >= 150 && x <= 250 && y >= 120 && y <= 135) base_color = DARK_GRAY;
-            end
 
-            // ---------------------- LEVEL 2 ----------------------
-            2'd2: begin
-                if (x >= 100 && x <= 180 && y >= 350 && y <= 360) base_color = DARK_GRAY;
-                if (x >= 200 && x <= 350 && y >= 260 && y <= 270) base_color = DARK_GRAY;
-                if (x >= 400 && x <= 450 && y >= 180 && y <= 190) base_color = DARK_GRAY;
-                if (x >= 300 && x <= 360 && y >= 120 && y <= 130) base_color = DARK_GRAY;
+            // ---------------------- LEVEL 2 (NEW) ----------------------
+            2'd1: begin
+                // New Platforms
+                if (x >= 0   && x <= 639 && y >= 400 && y <= 480) base_color = GRASS_GREEN;
+                if (x >= 100 && x <= 200 && y >= 340 && y <= 355) base_color = GRASS_GREEN;
+                if (x >= 250 && x <= 350 && y >= 280 && y <= 295) base_color = GRASS_GREEN;
+                if (x >= 400 && x <= 500 && y >= 220 && y <= 235) base_color = GRASS_GREEN;
+                if (x >= 200 && x <= 300 && y >= 160 && y <= 175) base_color = GRASS_GREEN;
+                if (x >= 50  && x <= 150 && y >= 100 && y <= 115) base_color = GRASS_GREEN;
+                if (x >= 550 && x <= 639 && y >= 50  && y <= 65)  base_color = GRASS_GREEN;
             end
 
         endcase
 
-        // Goal (works for all levels — you can customize)
-        if (x >= 580 && x <= 630 && y >= 355 && y <= 360)
+        // Goal (same for any level)
+        if (level == 2'd0 && x >= 580 && x <= 630 && y >= 355 && y <= 360)
             base_color = GOLD;
 
         // Side lava wall
-        if (x >= lava_wall_x && x < lava_wall_x + 10)
+        if (level == 2'd0 && x >= lava_wall_x && x < lava_wall_x + 10)
             base_color = LAVA_WALL_COLOR;
 
-        // ---------------- PLAYER SPRITE ----------------
+        // PLAYER SPRITE (same)
         if (x >= player_x && x < player_x + 16 &&
             y >= player_y && y < player_y + 16)
         begin
@@ -125,7 +122,7 @@ module vga_driver_memory (
                 base_color = PLAYER_COLOR;
         end
 
-        // ---------------- GAME STATE TINT ----------------
+        // GAME STATE TINT
         vga_color = base_color;
 
         if (active_pixels) begin
