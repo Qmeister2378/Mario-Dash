@@ -22,7 +22,7 @@ module lava_controller (
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             lava_wall_x      <= 10'd0;
-            lava_speed       <= 8'd0; // should be 1, is 0 for testing
+            lava_speed       <= 8'd1; // should be 1, is 0 for testing
             lava_enabled     <= 1'b0;
             first_move_done  <= 1'b0;
             delay_cnt        <= 9'd0;
