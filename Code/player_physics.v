@@ -2,18 +2,22 @@ module player_physics (
     input  wire       clk,
     input  wire       rst,
     input  wire       game_tick,
+
     input  wire       move_left,
     input  wire       move_right,
     input  wire       jump,
+
     input  wire       on_ground,
     input  wire [9:0] support_y,
     input  wire       hit_ceiling,
     input  wire       hit_left_wall,
     input  wire       hit_right_wall,
+
     input  wire       freeze,
-    input  wire [9:0] reset_x,   // new input: force player x
-    input  wire [9:0] reset_y,   // new input: force player y
-    input  wire       reset_player, // trigger reset this tick
+
+    input  wire [9:0] reset_x,
+    input  wire [9:0] reset_y,
+    input  wire       reset_player,
 
     output reg  [9:0] player_x,
     output reg  [9:0] player_y,
@@ -24,17 +28,17 @@ module player_physics (
     localparam PLAYER_W = 10'd16;
     localparam PLAYER_H = 10'd16;
 
-    localparam H_SPEED    = 10'd3;
+    localparam H_SPEED       = 10'd3;
     localparam signed [7:0] GRAVITY      = 8'sd1;
     localparam signed [7:0] JUMP_VEL     = -8'sd11;
     localparam signed [7:0] MAX_FALL_VEL = 8'sd8;
 
-    localparam START_X  = 10'd20;
-    localparam START_Y  = 10'd360 - PLAYER_H;
+    localparam START_X = 10'd20;
+    localparam START_Y = 10'd360 - PLAYER_H;
 
     reg signed [7:0] vy;
     reg signed [7:0] vy_next;
-    reg        was_in_air;
+    reg             was_in_air;
 
     reg [9:0] next_x;
     reg [9:0] next_y;
@@ -51,55 +55,48 @@ module player_physics (
             jump_landed_pulse <= 1'b0;
 
             if (!freeze) begin
-
-                // ========================================================
-                // PLAYER RESET LOGIC (triggered by top-level pulse)
-                // ========================================================
+                // PLAYER RESET LOGIC
                 if (reset_player) begin
-                    player_x <= reset_x;
-                    player_y <= reset_y;
-                    vy       <= 8'sd0;
-                    vy_next  <= 8'sd0;
+                    player_x   <= reset_x;
+                    player_y   <= reset_y;
+                    vy         <= 8'sd0;
+                    vy_next    <= 8'sd0;
                     was_in_air <= 1'b0;
                 end else begin
-                    // ====================================================
-                    // HORIZONTAL MOVEMENT
-                    // ====================================================
+                    // ---------------- HORIZONTAL ----------------
                     next_x = player_x;
 
                     if (move_left && !move_right) begin
                         if (!hit_left_wall && player_x > H_SPEED)
                             next_x = player_x - H_SPEED;
-                    end
-                    else if (move_right && !move_left) begin
+                    end else if (move_right && !move_left) begin
                         if (!hit_right_wall && player_x < SCREEN_W - PLAYER_W - H_SPEED)
                             next_x = player_x + H_SPEED;
                     end
 
                     player_x <= next_x;
 
-                    // ====================================================
-                    // VERTICAL MOVEMENT
-                    // ====================================================
+                    // ---------------- VERTICAL ----------------
                     next_y  = player_y;
                     vy_next = vy;
 
                     if (jump && on_ground) begin
-                        vy_next   = JUMP_VEL;
-                        next_y    = player_y + {{2{vy_next[7]}}, vy_next};
+                        vy_next = JUMP_VEL;
+                        next_y  = player_y + {{2{vy_next[7]}}, vy_next};
                         was_in_air <= 1'b1;
-                    end
-                    else begin
+                    end else begin
                         if (!on_ground) begin
                             vy_next = vy + GRAVITY;
-                            if (vy_next > MAX_FALL_VEL) vy_next = MAX_FALL_VEL;
+                            if (vy_next > MAX_FALL_VEL)
+                                vy_next = MAX_FALL_VEL;
+
                             next_y = player_y + {{2{vy_next[7]}}, vy_next};
+
                             if (hit_ceiling && vy_next < 0) begin
                                 vy_next = 0;
                                 next_y  = player_y;
                             end
-                        end
-                        else begin
+                        end else begin
                             next_y  = support_y - PLAYER_H;
                             vy_next = 0;
                             if (was_in_air) begin
@@ -115,4 +112,5 @@ module player_physics (
             end
         end
     end
+
 endmodule
