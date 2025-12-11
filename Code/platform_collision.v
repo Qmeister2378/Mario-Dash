@@ -1,7 +1,8 @@
 module platform_collision (
     input  wire [9:0] player_x,
     input  wire [9:0] player_y,
-    input  wire [1:0] level, // 0 = Level 1, 1 = Level 2, …
+    input  wire [1:0] level,
+	 input  wire [9:0] lava_height, // 0 = Level 1, 1 = Level 2, …
 
     // ground support info
     output wire       on_ground,
@@ -24,6 +25,10 @@ module platform_collision (
     localparam LAVA_Y       = 10'd380;
     localparam LANDING_TOL  = 10'd8;
     localparam CEILING_TOL  = 10'd12;
+	 
+	 localparam SCREEN_HEIGHT = 10'd480;
+    localparam LAVA_X_START = 270;
+    localparam LAVA_WIDTH   = 40;
 
     // ---------------- PLATFORM STORAGE ----------------
     reg [9:0] PX_MIN [0:11];
@@ -60,23 +65,28 @@ module platform_collision (
             PG_Y_BOT = 360;
 
         end else begin
-            // ---------- LEVEL 2 (GRASS AREA) ----------
-            PX_MIN[0] = 0;
-            PX_MAX[0] = 639; PY_TOP[0] = 400; PY_BOT[0] = 480; // Full ground
-            PX_MIN[1] = 100; PX_MAX[1] = 200; PY_TOP[1] = 340; PY_BOT[1] = 355;
-            PX_MIN[2] = 250; PX_MAX[2] = 350; PY_TOP[2] = 280; PY_BOT[2] = 295;
-            PX_MIN[3] = 400; PX_MAX[3] = 500; PY_TOP[3] = 220; PY_BOT[3] = 235;
-            PX_MIN[4] = 200; PX_MAX[4] = 300; PY_TOP[4] = 160; PY_BOT[4] = 175;
-            PX_MIN[5] = 50;  PX_MAX[5] = 150; PY_TOP[5] = 100; PY_BOT[5] = 115;
-            PX_MIN[6] = 550; PX_MAX[6] = 639; PY_TOP[6] = 50;  PY_BOT[6] = 65;
+            // ---------- LEVEL 2 (NEW: GRASS AND WATER PITS) ----------
+            
+            // Ground chunks (Platforms 0-2 are the ground)
+            PX_MIN[0] = 0;   PX_MAX[0] = 100; PY_TOP[0] = 400; PY_BOT[0] = 480; // Ground 1
+            PX_MIN[1] = 200; PX_MAX[1] = 300; PY_TOP[1] = 400; PY_BOT[1] = 480; // Ground 2
+            PX_MIN[2] = 400; PX_MAX[2] = 500; PY_TOP[2] = 400; PY_BOT[2] = 480; // Ground 3
+            PX_MIN[3] = 550; PX_MAX[3] = 639; PY_TOP[3] = 400; PY_BOT[3] = 480; // Ground 4 (NEW: Safe right edge)
+
+            // Mid-air platforms (4-6 are floating)
+            PX_MIN[8] = 120; PX_MAX[8] = 180; PY_TOP[8] = 370; PY_BOT[8] = 385; // Platform A (Above Pit 1)
+            PX_MIN[9] = 350; PX_MAX[9] = 400; PY_TOP[9] = 350; PY_BOT[9] = 365;
+
+            // Goal/Exit platform (7)
+            PX_MIN[7] = 550; PX_MAX[7] = 639; PY_TOP[7] = 50;  PY_BOT[7] = 65; 
 
             // Clear unused
-            for (i = 7; i < 12; i = i + 1) begin
+            for (i = 10; i < 12; i= i+1) begin // Starting from 8 now
                 PX_MIN[i] = 0;
                 PX_MAX[i] = 0; PY_TOP[i] = 0; PY_BOT[i] = 0;
             end
 
-            // Level 2 goal (grassy podium)
+            // Level 2 goal (invisible finish line at the high exit platform)
             PG_X_MIN = 580;
             PG_X_MAX = 639;
             PG_Y_TOP = 45;
@@ -89,6 +99,9 @@ module platform_collision (
     wire [9:0] head_y   = player_y;
     wire [9:0] px_left  = player_x;
     wire [9:0] px_right = player_x + PLAYER_W - 1;
+	 
+	 wire [9:0] lava_band_y_min = SCREEN_HEIGHT - lava_height;
+    wire [9:0] lava_band_y_max = SCREEN_HEIGHT - 1;
 
     // ---------------- COLLISION REGISTERS ----------------
     reg        r_has_support;
@@ -157,11 +170,36 @@ module platform_collision (
     assign at_goal_region =
         overlap_x(px_left, px_right, PG_X_MIN, PG_X_MAX) &&
         overlap_y(head_y, feet_y, PG_Y_TOP, PG_Y_BOT);
+		  
+wire rising_lava_hit =
+        (level == 2'd0) && (lava_height != 10'd0) &&
+        overlap_x(px_left, px_right, LAVA_X_START, LAVA_X_START + LAVA_WIDTH - 1) &&
+        overlap_y(head_y, feet_y, lava_band_y_min, lava_band_y_max);
 
-    // ---------------- LAVA (ONLY LEVEL 0) ----------------
-    assign in_lava =
-        (level == 2'd0) ?
-        ((feet_y >= LAVA_Y) && !on_ground) :
-            1'b0;
+		  
+		 wire in_water_l2;
+
+    // Water collision in Level 2
+    // Player is in water if feet_y is below the ground level (400) 
+    // AND they are horizontally in a "pit" region.
+    assign in_water_l2 = 
+        (feet_y >= 10'd400) && (
+            (px_left >= 10'd101 && px_right < 10'd200) ||
+            (px_left >= 10'd301 && px_right < 10'd400) ||
+            (px_left >= 10'd501 && px_right < 10'd550)				
+        );
+		  
+
+    reg r_in_lava;
+    always @(*) begin
+        case (level)
+            2'd0: r_in_lava = ((feet_y >= LAVA_Y) && !on_ground) ||
+            rising_lava_hit; 
+            2'd1: r_in_lava = in_water_l2;                        
+            default: r_in_lava = 1'b0;                            
+        endcase
+    end
+
+    assign in_lava = r_in_lava;
 
 endmodule
