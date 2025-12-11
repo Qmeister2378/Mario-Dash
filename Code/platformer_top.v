@@ -124,9 +124,7 @@ module platformer_top (
         .in_lava      (in_lava)
     );
 
-    //-------------------------------------------------------
-    // GAME FSM + LAVA LOGIC
-    //-------------------------------------------------------
+    // GAME FSM and lava logic
     localparam S_RUNNING   = 3'd0;
     localparam S_GAME_OVER = 3'd1;
     localparam S_WIN       = 3'd2;
