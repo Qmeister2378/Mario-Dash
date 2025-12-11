@@ -27,8 +27,9 @@ module vga_driver_memory (
     localparam GOLD        = 24'hFFD700;
     localparam PLAYER_COLOR = 24'h0000FF;
     localparam LAVA_WALL_COLOR = 24'hFF6600;
+	 localparam BROWN = 24'h964B00;
 
-    // NEW GRASS COLOR
+
     localparam GRASS_GREEN = 24'h3CB043;
 
     // Screen geometry
@@ -37,6 +38,8 @@ module vga_driver_memory (
 
     localparam LAVA_X_START = 270;
     localparam LAVA_WIDTH   = 40;
+	 
+    localparam WATER_BLUE  = 24'h00AFFF;
 
     reg [23:0] base_color;
     reg [23:0] vga_color;
@@ -58,10 +61,10 @@ module vga_driver_memory (
             (y >= (SCREEN_HEIGHT - lava_height)))
             base_color = LAVA_RED;
 
-        // ----------------- LEVEL SWITCH -----------------
+        
         case(level)
 
-            // LEVEL 0 (unchanged)
+            // Level 1
             2'd0: begin
                 if (x >= 0   && x <= 60  && y >= 360 && y <= 380) base_color = DARK_GRAY;
                 if (x >= 90  && x <= 270 && y >= 360 && y <= 380) base_color = DARK_GRAY;
@@ -77,21 +80,31 @@ module vga_driver_memory (
             end
 
 
-            // ---------------------- LEVEL 2 (NEW) ----------------------
+            // Level 2
             2'd1: begin
-                // New Platforms
-                if (x >= 0   && x <= 639 && y >= 400 && y <= 480) base_color = GRASS_GREEN;
-                if (x >= 100 && x <= 200 && y >= 340 && y <= 355) base_color = GRASS_GREEN;
-                if (x >= 250 && x <= 350 && y >= 280 && y <= 295) base_color = GRASS_GREEN;
-                if (x >= 400 && x <= 500 && y >= 220 && y <= 235) base_color = GRASS_GREEN;
-                if (x >= 200 && x <= 300 && y >= 160 && y <= 175) base_color = GRASS_GREEN;
-                if (x >= 50  && x <= 150 && y >= 100 && y <= 115) base_color = GRASS_GREEN;
-                if (x >= 550 && x <= 639 && y >= 50  && y <= 65)  base_color = GRASS_GREEN;
-            end
+                // Ground Chunks (GRASS_GREEN top: 400, bottom: 480)
+                if (x >= 0   && x <= 100 && y >= 400) base_color = GRASS_GREEN;
+                if (x >= 200 && x <= 300 && y >= 400) base_color = GRASS_GREEN;
+                if (x >= 400 && x <= 500 && y >= 400) base_color = GRASS_GREEN;
+                if (x >= 550 && x <= 639 && y >= 400) base_color = GRASS_GREEN; // NEW: Safe right edge
+                
+                // Floating Platforms (GRASS_GREEN)
+					 if (x >= 120 && x <= 180 && y >= 370 && y <= 385) base_color = BROWN;
 
+                if (x >= 350 && x <= 400 && y >= 350 && y <= 365) base_color = BROWN;
+               
+
+                // Water Pits (WATER_BLUE) - Draw this over the default background
+                if (y >= 400) begin
+                    if (x > 100 && x < 200) base_color = WATER_BLUE;
+                    if (x > 300 && x < 400) base_color = WATER_BLUE; 
+                    if (x > 500 && x < 550) base_color = WATER_BLUE;
+						  
+                end
+            end
         endcase
 
-        // Goal (same for any level)
+        // Goal
         if (level == 2'd0 && x >= 580 && x <= 630 && y >= 355 && y <= 360)
             base_color = GOLD;
 
