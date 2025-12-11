@@ -42,9 +42,18 @@ module platform_collision (
     integer i;
 
     // ---------------- PLATFORM DEFINITIONS ----------------
+    // ---------------- PLATFORM DEFINITIONS ----------------
     always @(*) begin
+        // Clear everything first
+        for (i = 0; i < 12; i = i + 1) begin
+            PX_MIN[i] = 10'd0;
+            PX_MAX[i] = 10'd0;
+            PY_TOP[i] = 10'd0;
+            PY_BOT[i] = 10'd0;
+        end
+
         if (level == 2'd0) begin
-            // ---------- LEVEL 1 ----------
+            // LEVEL 1
             PX_MIN[0] = 0;   PX_MAX[0] = 60;  PY_TOP[0] = 360; PY_BOT[0] = 380;
             PX_MIN[1] = 90;  PX_MAX[1] = 270; PY_TOP[1] = 360; PY_BOT[1] = 380;
             PX_MIN[2] = 130; PX_MAX[2] = 200; PY_TOP[2] = 295; PY_BOT[2] = 310;
@@ -56,41 +65,19 @@ module platform_collision (
             PX_MIN[8] = 370; PX_MAX[8] = 430; PY_TOP[8] = 165; PY_BOT[8] = 180;
             PX_MIN[9] = 475; PX_MAX[9] = 550; PY_TOP[9] = 190; PY_BOT[9] = 240;
             PX_MIN[10] = 540; PX_MAX[10] = 639; PY_TOP[10] = 360; PY_BOT[10] = 380;
-            PX_MIN[11] = 0;   PX_MAX[11] = 0;   PY_TOP[11] = 0; PY_BOT[11] = 0;
-
-            // Level 1 goal
-            PG_X_MIN = 580;
-            PG_X_MAX = 630;
-            PG_Y_TOP = 355;
-            PG_Y_BOT = 360;
-
+            // PX[11] remains zeroed
+            PG_X_MIN = 580; PG_X_MAX = 630; PG_Y_TOP = 355; PG_Y_BOT = 360;
         end else begin
-            // ---------- LEVEL 2 (NEW: GRASS AND WATER PITS) ----------
-            
-            // Ground chunks (Platforms 0-2 are the ground)
+            // LEVEL 2 - explicitly set all used indices
             PX_MIN[0] = 0;   PX_MAX[0] = 100; PY_TOP[0] = 400; PY_BOT[0] = 480; // Ground 1
             PX_MIN[1] = 200; PX_MAX[1] = 300; PY_TOP[1] = 400; PY_BOT[1] = 480; // Ground 2
             PX_MIN[2] = 400; PX_MAX[2] = 500; PY_TOP[2] = 400; PY_BOT[2] = 480; // Ground 3
-            PX_MIN[3] = 550; PX_MAX[3] = 639; PY_TOP[3] = 400; PY_BOT[3] = 480; // Ground 4 (NEW: Safe right edge)
-
-            // Mid-air platforms (4-6 are floating)
-            PX_MIN[8] = 120; PX_MAX[8] = 180; PY_TOP[8] = 370; PY_BOT[8] = 385; // Platform A (Above Pit 1)
-            PX_MIN[9] = 350; PX_MAX[9] = 400; PY_TOP[9] = 350; PY_BOT[9] = 365;
-
-            // Goal/Exit platform (7)
-            PX_MIN[7] = 550; PX_MAX[7] = 639; PY_TOP[7] = 50;  PY_BOT[7] = 65; 
-
-            // Clear unused
-            for (i = 10; i < 12; i= i+1) begin // Starting from 8 now
-                PX_MIN[i] = 0;
-                PX_MAX[i] = 0; PY_TOP[i] = 0; PY_BOT[i] = 0;
-            end
-
-            // Level 2 goal (invisible finish line at the high exit platform)
-            PG_X_MIN = 580;
-            PG_X_MAX = 639;
-            PG_Y_TOP = 45;
-            PG_Y_BOT = 65;
+            PX_MIN[3] = 550; PX_MAX[3] = 639; PY_TOP[3] = 400; PY_BOT[3] = 480; // Ground 4
+            PX_MIN[4] = 120; PX_MAX[4] = 180; PY_TOP[4] = 370; PY_BOT[4] = 385; // Floating A
+            PX_MIN[5] = 350; PX_MAX[5] = 400; PY_TOP[5] = 350; PY_BOT[5] = 365; // Floating B
+            PX_MIN[6] = 550; PX_MAX[6] = 639; PY_TOP[6] = 50;  PY_BOT[6] = 65;  // Goal platform
+            // leave remaining entries zero
+            PG_X_MIN = 10; PG_X_MAX = 60; PG_Y_TOP = 395; PG_Y_BOT = 400;
         end
     end
 
