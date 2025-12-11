@@ -205,26 +205,33 @@ module platformer_top (
                 if (level == 2'd0) begin
                     player_x_reset <= 10'd20;
                     player_y_reset <= 10'd360 - 10'd16;
-                end else begin
+                end //else begin
                     // A safe reset position for Level 1+ (assuming ground is at y=380 or lower)
-                    player_x_reset <= 10'd20;
-                    player_y_reset <= 10'd380 - 10'd16;
-                end
+                    //player_x_reset <= 10'd20;
+                    //player_y_reset <= 10'd380 - 10'd16;
+                //end
             end
 
             S_WIN: begin
                 // advance to next level
-                level <= level + 1'b1;
-                // Reset player to starter position
-                player_x_reset <= 10'd20;
-                player_y_reset <= 10'd380 - 10'd16; // Use new safe start position
+					 if (level < 2'd1) begin
+						level <= level + 1'b1;
+						                // Reset player to starter position
+                  player_x_reset <= 10'd20;
+                  player_y_reset <= 10'd380 - 10'd16; // Use new safe start position
 
-                // Reset lava
-                lava_height <= 10'd0;
-                lava_rise <= 1'b1;
+                  // Reset lava
+                  lava_height <= 10'd0;
+                  lava_rise <= 1'b1;
 
-                game_state <= S_RUNNING;
-                freeze <= 1'b0;
+                  game_state <= S_RUNNING;
+                  freeze <= 1'b0;
+					end else begin
+						level <= 2'd1;
+						game_state <= S_WIN;
+						freeze <= 1;
+					end
+
             end
         endcase
     end
