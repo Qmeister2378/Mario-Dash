@@ -107,6 +107,7 @@ module platformer_top (
     platform_collision collision (
         .player_x      (player_x),
         .player_y      (player_y),
+		   .lava_height   (lava_height),
         .level         (level),
         .on_ground     (on_ground),
         .support_y     (support_y),
@@ -194,7 +195,7 @@ module platformer_top (
                     lava_rise <= 1'b1; // Default state for next Level 0 restart
                 end
             end
-// ... (after line 174)
+
 
             S_GAME_OVER: begin
                 freeze <= 1'b1;
