@@ -57,7 +57,7 @@ module vga_driver_memory (
             base_color = LAVA_RED;
 
         // Rising lava band
-        if ((x >= LAVA_X_START && x < LAVA_X_START + LAVA_WIDTH) &&
+        if (level == 2'd0 && (x >= LAVA_X_START && x < LAVA_X_START + LAVA_WIDTH) &&
             (y >= (SCREEN_HEIGHT - lava_height)))
             base_color = LAVA_RED;
 
@@ -107,6 +107,8 @@ module vga_driver_memory (
         // Goal
         if (level == 2'd0 && x >= 580 && x <= 630 && y >= 355 && y <= 360)
             base_color = GOLD;
+		  if (level == 2'd1 && x >= 10 && x <= 60 && y >= 395 && y <= 400)
+				base_color = GOLD;
 
         // Side lava wall
         if (level == 2'd0 && x >= lava_wall_x && x < lava_wall_x + 10)
