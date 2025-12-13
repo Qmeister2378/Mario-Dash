@@ -79,7 +79,7 @@ module vga_driver_memory (
             (y >= (SCREEN_HEIGHT - lava_height)))
             base_color = LAVA_RED;
 
-        // LEVEL GEOMETRY
+        // level geometry
         case (level)
             2'd0: begin
                 // Level 1 platforms
@@ -95,7 +95,7 @@ module vga_driver_memory (
                 if (x >= 475 && x <= 550 && y >= 190 && y <= 240) base_color = DARK_GRAY;
                 if (x >= 540 &&          y >= 360 && y <= 380)     base_color = DARK_GRAY;
             end
-
+            // Level 2 platforms
             2'd1: begin
                 // Ground chunks
                 if (x >= 0   && x <= 100 && y >= 400) base_color = GRASS_GREEN;
@@ -114,12 +114,12 @@ module vga_driver_memory (
                     if (x > 500 && x < 550) base_color = WATER_BLUE;
                 end
 
-                // Enemy (16x16)
+                // Enemy creation
                 if (x >= enemy_x && x < enemy_x + 16 &&
                     y >= enemy_y && y < enemy_y + 16)
                     base_color = ENEMY_COLOR;
 
-                // Projectiles original(2x5) – up to 4 // now 4 x 10
+                // Projectiles, now 4 x 10
                 if (proj0_active &&
                     x >= proj0_x && x < proj0_x + 5 &&
                     y >= proj0_y && y < proj0_y + 12)
@@ -149,11 +149,11 @@ module vga_driver_memory (
         if (level == 2'd1 && x >= 10 && x <= 60 && y >= 395 && y <= 400)
             base_color = GOLD;
 
-        // Side lava wall (level 0)
+        // Side lava wall
         if (level == 2'd0 && x >= lava_wall_x && x < lava_wall_x + 10)
             base_color = LAVA_WALL_COLOR;
 
-        // PLAYER SPRITE
+        // Player stick figure
         if (x >= player_x && x < player_x + 16 &&
             y >= player_y && y < player_y + 16) begin
 
@@ -181,17 +181,16 @@ module vga_driver_memory (
                 base_color = PLAYER_COLOR;
         end
 
-        // GAME STATE TINT
+        // game state colors
         vga_color = base_color;
 
         if (active_pixels) begin
             if (game_state == S_GAME_OVER) begin
-                // red tint
+                // red color
                 vga_color[23:16] = base_color[23:16] | 8'h60;
                 vga_color[15:8]  = base_color[15:8]  >> 1;
                 vga_color[7:0]   = base_color[7:0]   >> 1;
             end else if (game_state == S_WIN) begin
-                // warm tint
                 vga_color = base_color | 24'h302000;
             end
         end
@@ -204,3 +203,4 @@ module vga_driver_memory (
     end
 
 endmodule
+
