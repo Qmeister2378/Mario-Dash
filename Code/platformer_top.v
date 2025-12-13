@@ -1,7 +1,4 @@
-// ======================================================
-// Top-level: platformer_top.v
-// ======================================================
-
+// Top level
 module platformer_top (
     input        CLOCK_50,
     input  [3:0] KEY,
@@ -30,11 +27,9 @@ module platformer_top (
     assign HEX3 = 7'h00;
     assign LEDR = 10'b0;
 
-    //-------------------------------------------------------
-    // VGA timing
-    //-------------------------------------------------------
+   // timing for vga
     wire clk = CLOCK_50;
-    wire rst = SW[0]; // active-low reset
+    wire rst = SW[0]; 
 
     wire       active_pixels;
     wire [9:0] x;
@@ -53,10 +48,7 @@ module platformer_top (
         .VGA_SYNC_N   (VGA_SYNC_N)
     );
 
-    //-------------------------------------------------------
-    // 60 Hz GAME TICK
-    //-------------------------------------------------------
-    localparam TICK_DIV_MAX = 20'd833333; // 50MHz / 60Hz
+    localparam TICK_DIV_MAX = 20'd833333;
 
     reg [19:0] tick_counter;
     reg        game_tick;
@@ -76,9 +68,7 @@ module platformer_top (
         end
     end
 
-    //-------------------------------------------------------
-    // INPUT HANDLING
-    //-------------------------------------------------------
+    // Key inputs for movement
     wire raw_move_right = ~KEY[0];
     wire raw_jump       = ~KEY[1];
     wire raw_move_left  = ~KEY[2];
@@ -89,9 +79,7 @@ module platformer_top (
 
     wire any_input_level = raw_move_left | raw_move_right | raw_jump;
 
-    //-------------------------------------------------------
-    // COLLISION + PLAYER SIGNALS
-    //-------------------------------------------------------
+// collision and player signals
     wire [9:0] player_x;
     wire [9:0] player_y;
 
@@ -103,9 +91,8 @@ module platformer_top (
     wire       at_goal_region;
     wire       in_lava;
 
-    reg [1:0] level = 2'd0; // current level
+	reg [1:0] level = 2'd0; // starter level
 
-    // Lava band
     reg [9:0] lava_height;
     reg       lava_rise;
 
@@ -143,7 +130,6 @@ module platformer_top (
 
     wire jump_landed_pulse;
 
-    // Enemy hit (from enemy_controller)
     wire hit_enemy;
 
     always @(posedge clk or negedge rst) begin
@@ -179,7 +165,7 @@ module platformer_top (
                         freeze     <= 1'b1;
                     end
 
-                    // Lava rising/falling logic (only in level 0)
+                    // Lava rising/falling logic
                     if (level == 2'd0) begin
                         if (lava_rise) begin
                             if (lava_height + LAVA_SPEED < LAVA_TOP)
@@ -197,7 +183,6 @@ module platformer_top (
                             end
                         end
                     end else begin
-                        // Level 1 or higher: keep lava safely at bottom
                         lava_height <= LAVA_BOTTOM;
                         lava_rise   <= 1'b1;
                     end
@@ -207,7 +192,7 @@ module platformer_top (
                     freeze     <= 1'b1;
                     game_state <= S_GAME_OVER;
 
-                    // Reset position values (actual reset handled by player_physics if you use reset_player)
+                    // Reset position values
                     if (level == 2'd0) begin
                         player_x_reset <= 10'd20;
                         player_y_reset <= 10'd360 - 10'd16;
@@ -240,10 +225,8 @@ module platformer_top (
         end
     end
 
-    //-------------------------------------------------------
-    // PLAYER PHYSICS
-    //-------------------------------------------------------
-    wire reset_player = 1'b0; // still unused pulse; can wire later if you want
+    // player physics- Movement of overall player
+    wire reset_player = 1'b0; 
 
     player_physics player (
         .clk              (clk),
@@ -266,9 +249,7 @@ module platformer_top (
         .jump_landed_pulse(jump_landed_pulse)
     );
 
-    //-------------------------------------------------------
-    // LAVA CONTROLLER (side wall)
-    //-------------------------------------------------------
+   // Lava controller for lava wall
     wire [9:0] lava_wall_x;
     wire       hit_lava_wall;
 
@@ -285,9 +266,7 @@ module platformer_top (
         .hit_lava_wall    (hit_lava_wall)
     );
 
-    //-------------------------------------------------------
-    // ENEMY CONTROLLER (Level 2 flying enemy with 4 bullets)
-    //-------------------------------------------------------
+    // Enenmy controller that fires 4 projectiles overtime
     wire [9:0] enemy_x;
     wire [9:0] enemy_y;
 
@@ -331,9 +310,6 @@ module platformer_top (
         .hit_enemy   (hit_enemy)
     );
 
-    //-------------------------------------------------------
-    // VGA RENDERER
-    //-------------------------------------------------------
     vga_driver_memory the_renderer(
         .x             (x),
         .y             (y),
@@ -367,3 +343,4 @@ module platformer_top (
     );
 
 endmodule
+
