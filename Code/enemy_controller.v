@@ -30,7 +30,6 @@ module enemy_controller (
     output wire       hit_enemy
 );
 
-    // Screen / sizes
     localparam SCREEN_H  = 10'd480;
 
     localparam PLAYER_W  = 10'd16;
@@ -44,17 +43,17 @@ module enemy_controller (
 
     localparam NUM_PROJ  = 4;
 
-    // Enemy patrol region (Level 2)
-    localparam ENEMY_Y_CONST    = 10'd120;   // "in the sky"
+    // Enemy bounds
+    localparam ENEMY_Y_CONST    = 10'd120;
     localparam PATROL_X_MIN     = 10'd120;
     localparam PATROL_X_MAX     = 10'd580;
     localparam ENEMY_SPEED      = 10'd3;
 
     // Projectile
     localparam PROJ_SPEED       = 10'd6;
-    localparam SHOOT_PERIOD_TCK = 8'd20;     // ~1/2 sec at 30 Hz
+    localparam SHOOT_PERIOD_TCK = 8'd20;
 
-    reg        dir_left;       // 0 = moving right, 1 = moving left
+    reg        dir_left;
     reg [7:0]  shoot_timer;
 
     // Internal projectile arrays
@@ -80,7 +79,7 @@ module enemy_controller (
             shoot_timer <= SHOOT_PERIOD_TCK;
         end else if (game_tick) begin
             if (level != 2'd1) begin
-                // Enemy only active in Level 2; reset when not on level 2
+                // Enemy only active in Level 2 and reset when not on level 2
                 enemy_x     <= PATROL_X_MIN;
                 enemy_y     <= ENEMY_Y_CONST;
                 dir_left    <= 1'b0;
@@ -93,7 +92,7 @@ module enemy_controller (
 
                 shoot_timer <= SHOOT_PERIOD_TCK;
             end else if (!freeze) begin
-                // ---------------- ENEMY PATROL ----------------
+                // enemy movement
                 if (!dir_left) begin
                     // moving right
                     if (enemy_x + ENEMY_W + ENEMY_SPEED <= PATROL_X_MAX)
@@ -114,11 +113,10 @@ module enemy_controller (
 
                 enemy_y <= ENEMY_Y_CONST;
 
-                // ---------------- SHOOT TIMER ----------------
+                // shooting time
                 if (shoot_timer > 0) begin
                     shoot_timer <= shoot_timer - 1'b1;
                 end else begin
-                    // Time to shoot: look for a free projectile slot
                     integer slot;
                     slot = -1;
                     for (i = 0; i < NUM_PROJ; i = i + 1) begin
@@ -133,11 +131,11 @@ module enemy_controller (
                         proj_y[slot]   <= enemy_y + ENEMY_H;
                     end
 
-                    // Reset timer regardless of whether we found a slot
+                    // Reset timer afterwares
                     shoot_timer <= SHOOT_PERIOD_TCK;
                 end
 
-                // ---------------- PROJECTILE FALL ----------------
+                // Falling Projectile
                 for (i = 0; i < NUM_PROJ; i = i + 1) begin
                     if (proj_act[i]) begin
                         if (proj_y[i] + PROJ_H + PROJ_SPEED < SCREEN_H) begin
@@ -170,7 +168,7 @@ module enemy_controller (
         proj3_active = proj_act[3];
     end
 
-    // ---------------- COLLISION CHECK ----------------
+    // checking collisons
     function automatic overlap_1d;
         input [9:0] a_min, a_max, b_min, b_max;
         begin
@@ -188,7 +186,6 @@ module enemy_controller (
     wire [9:0] enemy_y_min  = enemy_y;
     wire [9:0] enemy_y_max  = enemy_y + ENEMY_H - 1;
 
-    // Enemy body overlap
     wire enemy_overlap =
         overlap_1d(player_x_min, player_x_max, enemy_x_min, enemy_x_max) &&
         overlap_1d(player_y_min, player_y_max, enemy_y_min, enemy_y_max);
@@ -212,3 +209,4 @@ module enemy_controller (
     assign hit_enemy = (level == 2'd1) && (enemy_overlap || proj_overlap_any);
 
 endmodule
+
