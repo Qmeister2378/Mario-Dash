@@ -14,7 +14,7 @@ module lava_controller (
 
     localparam SCREEN_W       = 10'd640;
     localparam LAVA_WALL_WIDTH= 10'd10;
-    localparam LAVA_DELAY_TICKS = 9'd120; // ~2 seconds at 60 Hz
+    localparam LAVA_DELAY_TICKS = 9'd120;
 
     reg [7:0] lava_speed;
     reg       lava_enabled;
@@ -24,7 +24,7 @@ module lava_controller (
     always @(posedge clk or negedge rst) begin
         if (!rst) begin
             lava_wall_x     <= 10'd0;
-            lava_speed      <= 8'd1; // default speed
+            lava_speed      <= 8'd1; 
             lava_enabled    <= 1'b0;
             first_move_done <= 1'b0;
             delay_cnt       <= 9'd0;
@@ -48,22 +48,21 @@ module lava_controller (
                             lava_enabled <= 1'b1;
                     end
 
-                    // speed boost (placeholder: currently does nothing visible)
                     if (speed_boost_pulse)
-                        lava_speed <= lava_speed; // adjust if desired
+                        lava_speed <= lava_speed;
 
-                    // movement (this part was in your older code, add as needed)
+                    // movement of approaching lava wall
                     if (lava_enabled) begin
                         if (lava_wall_x + LAVA_WALL_WIDTH < SCREEN_W)
                             lava_wall_x <= lava_wall_x + lava_speed;
                     end
 
-                    // hit detection vs player
+                    // Detection of player hitting lava wall
                     if (lava_wall_x + LAVA_WALL_WIDTH >= player_x)
                         hit_lava_wall <= 1'b1;
                 end
             end else begin
-                // Level 1 or higher: Lava disabled
+                // Any other levels has lava disabled
                 lava_wall_x   <= 10'd0;
                 hit_lava_wall <= 1'b0;
             end
@@ -71,3 +70,4 @@ module lava_controller (
     end
 
 endmodule
+
