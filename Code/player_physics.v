@@ -52,9 +52,8 @@ module player_physics (
 
             if (!freeze) begin
 
-                // ========================================================
-                // PLAYER RESET LOGIC (triggered by top-level pulse)
-                // ========================================================
+                
+                // reset player
                 if (reset_player) begin
                     player_x <= reset_x;
                     player_y <= reset_y;
@@ -62,9 +61,7 @@ module player_physics (
                     vy_next  <= 8'sd0;
                     was_in_air <= 1'b0;
                 end else begin
-                    // ====================================================
-                    // HORIZONTAL MOVEMENT
-                    // ====================================================
+                    // horizontal movement
                     next_x = player_x;
 
                     if (move_left && !move_right) begin
@@ -78,9 +75,7 @@ module player_physics (
 
                     player_x <= next_x;
 
-                    // ====================================================
-                    // VERTICAL MOVEMENT
-                    // ====================================================
+                    // vertical movement 
                     next_y  = player_y;
                     vy_next = vy;
 
@@ -116,3 +111,4 @@ module player_physics (
         end
     end
 endmodule
+
