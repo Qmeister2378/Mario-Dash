@@ -16,7 +16,6 @@ module platform_collision (
     output wire       in_lava
 );
 
-    // ---------------- CONSTANTS ----------------
     localparam PLAYER_W = 10'd16;
     localparam PLAYER_H = 10'd16;
 
@@ -28,18 +27,17 @@ module platform_collision (
     localparam LAVA_X_START  = 270;
     localparam LAVA_WIDTH    = 40;
 
-    // ---------------- PLATFORM STORAGE ----------------
+    // Platform storage
     reg [9:0] PX_MIN [0:11];
     reg [9:0] PX_MAX [0:11];
     reg [9:0] PY_TOP [0:11];
     reg [9:0] PY_BOT [0:11];
 
-    // Goal region
     reg [9:0] PG_X_MIN, PG_X_MAX, PG_Y_TOP, PG_Y_BOT;
 
     integer i;
 
-    // ---------------- PLATFORM DEFINITIONS ----------------
+    // Creation on Platforms
     always @(*) begin
         // Clear everything first
         for (i = 0; i < 12; i = i + 1) begin
@@ -62,7 +60,6 @@ module platform_collision (
             PX_MIN[8]  = 370; PX_MAX[8]  = 430; PY_TOP[8]  = 165; PY_BOT[8]  = 180;
             PX_MIN[9]  = 475; PX_MAX[9]  = 550; PY_TOP[9]  = 190; PY_BOT[9]  = 240;
             PX_MIN[10] = 540; PX_MAX[10] = 639; PY_TOP[10] = 360; PY_BOT[10] = 380;
-            // PX[11] stays zero
             PG_X_MIN = 580; PG_X_MAX = 630; PG_Y_TOP = 355; PG_Y_BOT = 360;
         end else begin
             // LEVEL 2
@@ -79,7 +76,7 @@ module platform_collision (
         end
     end
 
-    // ---------------- PLAYER BOUNDS ----------------
+    // Bounds of player
     wire [9:0] feet_y   = player_y + PLAYER_H;
     wire [9:0] head_y   = player_y;
     wire [9:0] px_left  = player_x;
@@ -88,14 +85,14 @@ module platform_collision (
     wire [9:0] lava_band_y_min = SCREEN_HEIGHT - lava_height;
     wire [9:0] lava_band_y_max = SCREEN_HEIGHT - 1;
 
-    // ---------------- COLLISION REGISTERS ----------------
+    // Registers for collisions
     reg       r_has_support;
     reg [9:0] r_support_y;
     reg       r_hit_left;
     reg       r_hit_right;
     reg       r_hit_ceiling;
 
-    // ---------------- OVERLAP FUNCTIONS ----------------
+    // check whether the player and an object overlap along one axis
     function overlap_x;
         input [9:0] a_min, a_max, b_min, b_max;
         begin
@@ -110,7 +107,7 @@ module platform_collision (
         end
     endfunction
 
-    // ---------------- MAIN COLLISION CHECK ----------------
+    // collision check
     always @(*) begin
         r_has_support = 1'b0;
         r_support_y   = 10'd0;
@@ -144,7 +141,6 @@ module platform_collision (
         end
     end
 
-    // ---------------- ASSIGN OUTPUT COLLISIONS ----------------
     assign support_y = r_support_y;
     assign on_ground =
         r_has_support &&
@@ -155,18 +151,17 @@ module platform_collision (
     assign hit_left_wall = r_hit_left;
     assign hit_right_wall= r_hit_right;
 
-    // ---------------- GOAL DETECTION ----------------
     assign at_goal_region =
         overlap_x(px_left, px_right, PG_X_MIN, PG_X_MAX) &&
         overlap_y(head_y, feet_y, PG_Y_TOP, PG_Y_BOT);
 
-    // Rising lava hit (level 0)
+    // Rising lava hit
     wire rising_lava_hit =
         (level == 2'd0) && (lava_height != 10'd0) &&
         overlap_x(px_left, px_right, LAVA_X_START, LAVA_X_START + LAVA_WIDTH - 1) &&
         overlap_y(head_y, feet_y, lava_band_y_min, lava_band_y_max);
 
-    // Water pits (level 2)
+    // Water pits hit
     wire in_water_l2 =
         (feet_y >= 10'd400) && (
             (px_left >= 10'd101 && px_right < 10'd200) ||
@@ -186,3 +181,4 @@ module platform_collision (
     assign in_lava = r_in_lava;
 
 endmodule
+
